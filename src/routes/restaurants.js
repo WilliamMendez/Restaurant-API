@@ -8,7 +8,7 @@ const { restaurantValidationRules } = require("../middleware/validationRules");
 // Get restaurant recommendations based on coordinates
 router.get("/recommendations", auth, restaurantValidationRules.getRecommendations, validate, async (req, res) => {
     try {
-        const { latitude, longitude, radius = 1500 } = req.query;
+        const { latitude, longitude, radius = 100 } = req.query;
 
         if (!latitude || !longitude) {
             return res.status(400).json({ message: "Latitude and longitude are required" });

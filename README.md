@@ -108,7 +108,7 @@ npm start
 -   Query params:
     -   `latitude`: Latitud (-90 a 90)
     -   `longitude`: Longitud (-180 a 180)
-    -   `radius`: Radio de búsqueda en metros (100 a 50000)
+    -   `radius`: Radio de búsqueda en metros (1 a 50000)
 -   Requiere token de autenticación
 
 ### Auditoría
@@ -170,4 +170,3 @@ Cada registro incluye:
 -   IP del cliente
 -   User Agent
 -   Estado de la respuesta
-
