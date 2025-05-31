@@ -1,0 +1,452 @@
+{
+	"info": {
+		"_postman_id": "983d6444-6771-42cd-a166-7ba1e0d089a2",
+		"name": "Restaurant API",
+		"description": "Collection for testing the Restaurant API endpoints including authentication, restaurant recommendations, and audit logs",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "17281044"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Generate random user data",
+									"const randomId = Math.floor(Math.random() * 10000);",
+									"const testUser = {",
+									"    email: `test${randomId}@example.com`,",
+									"    password: `password${randomId}`,",
+									"    name: `Test User ${randomId}`",
+									"};",
+									"",
+									"// Store user data in environment variables",
+									"pm.environment.set('test_user', JSON.stringify(testUser));",
+									"",
+									"// Update request body with random user data",
+									"pm.request.body.raw = JSON.stringify(testUser);"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201 or 200\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"pm.test(\"Response has user or message\", function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.any.keys('user', 'message');",
+									"    if (json.user) {",
+									"        pm.environment.set('user_id', json.user.id);",
+									"    }",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\",\n    \"name\": \"John Doe\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new user"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Get stored user data",
+									"const testUser = JSON.parse(pm.environment.get('test_user'));",
+									"",
+									"// Update request body with stored credentials",
+									"pm.request.body.raw = JSON.stringify({",
+									"    email: testUser.email,",
+									"    password: testUser.password",
+									"});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has token\", function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('token');",
+									"    if (json.token) {",
+									"        pm.environment.set('auth_token', json.token);",
+									"    }",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login with user credentials"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Ensure we have an auth token",
+									"const authToken = pm.environment.get('auth_token');",
+									"if (!authToken) {",
+									"    console.error('No auth token found. Please run the Login request first.');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has user info\", function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('user');",
+									"    const testUser = JSON.parse(pm.environment.get('test_user'));",
+									"    pm.expect(json.user.email).to.equal(testUser.email);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						},
+						"description": "Get current user information"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Restaurants",
+			"item": [
+				{
+					"name": "Get Restaurant Recommendations",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Ensure we have an auth token",
+									"const authToken = pm.environment.get('auth_token');",
+									"if (!authToken) {",
+									"    console.error('No auth token found. Please run the Login request first.');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has restaurants array\", function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('restaurants');",
+									"    pm.expect(json.restaurants).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/restaurants/recommendations?latitude=4.6030255&longitude=-74.0686434&radius=150",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"restaurants",
+								"recommendations"
+							],
+							"query": [
+								{
+									"key": "latitude",
+									"value": "4.6030255"
+								},
+								{
+									"key": "longitude",
+									"value": "-74.0686434"
+								},
+								{
+									"key": "radius",
+									"value": "150"
+								}
+							]
+						},
+						"description": "Get restaurant recommendations based on coordinates"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Audit Logs",
+			"item": [
+				{
+					"name": "Get All Audit Logs",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Ensure we have an auth token",
+									"const authToken = pm.environment.get('auth_token');",
+									"if (!authToken) {",
+									"    console.error('No auth token found. Please run the Login request first.');",
+									"}"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has logs array\", function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('logs');",
+									"    pm.expect(json.logs).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/audit?page=1&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"audit"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get paginated audit logs"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Audit Logs",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Ensure we have an auth token and user ID",
+									"const authToken = pm.environment.get('auth_token');",
+									"const userId = pm.environment.get('user_id');",
+									"if (!authToken) {",
+									"    console.error('No auth token found. Please run the Login request first.');",
+									"}",
+									"if (!userId) {",
+									"    console.error('No user ID found. Please run the Register request first.');",
+									"}"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has logs array\", function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('logs');",
+									"    pm.expect(json.logs).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/audit/user/{{user_id}}?page=1&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"audit",
+								"user",
+								"{{user_id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get paginated audit logs for a specific user"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Collection-level pre-request script",
+					"// Clear collection variables if they exist",
+					"pm.collectionVariables.clear();"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Collection-level test script",
+					"// Add any collection-wide tests here"
+				]
+			}
+		}
+	]
+}
